@@ -9,7 +9,7 @@ const steps = [
   },
   {
     title: "3. Secure your favorite",
-    body: "Choose a domain, pay the $5 DomainBreezy instant secure fee, then complete registration through Namecheap.",
+    body: "Choose a domain and complete purchase with total pricing shown (includes a $4.99 DomainBreezy service fee). Some registrars can complete registration in chat.",
   },
 ];
 

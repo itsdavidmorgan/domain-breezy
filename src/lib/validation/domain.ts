@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const registrarSchema = z.enum(["namecheap", "cloudflare", "dnsimple", "porkbun"]);
+
 export const generateDomainsRequestSchema = z.object({
   idea: z.string().trim().min(10).max(300),
 });
@@ -19,6 +21,7 @@ export const checkAvailabilityRequestSchema = z.object({
     .array(z.string().trim().toLowerCase())
     .min(1)
     .max(25),
+  registrars: z.array(registrarSchema).min(1).max(4).optional(),
 });
 
 export const checkAvailabilityResponseSchema = z.object({
@@ -26,12 +29,31 @@ export const checkAvailabilityResponseSchema = z.object({
     z.object({
       domain: z.string(),
       available: z.boolean(),
+      options: z.array(
+        z.object({
+          registrar: registrarSchema,
+          connected: z.boolean(),
+          purchasableInChat: z.boolean(),
+          basePriceUsd: z.number(),
+          totalPriceUsd: z.number(),
+          currency: z.literal("USD"),
+          action: z.enum(["purchase_in_chat", "connect_account", "external_checkout"]),
+          connectUrl: z.string().optional(),
+          note: z.string(),
+        }),
+      ),
     }),
   ),
 });
 
 export const checkoutRequestSchema = z.object({
   domain: z.string().trim().toLowerCase().min(3),
+});
+
+export const purchaseDomainRequestSchema = z.object({
+  domain: z.string().trim().toLowerCase().min(3),
+  registrar: registrarSchema,
+  expectedTotalPriceUsd: z.number().positive(),
 });
 
 export function assertDomainLooksValid(domain: string) {

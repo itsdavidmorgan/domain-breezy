@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { checkAvailability } from "@/lib/domain/namecheap";
 import { ApiError } from "@/lib/http/errors";
 import { fail, ok } from "@/lib/http/response";
+import { buildOptionsForDomains } from "@/lib/registrars/service";
 import {
   checkAvailabilityRequestSchema,
   checkAvailabilityResponseSchema,
@@ -15,7 +16,8 @@ export async function POST(request: NextRequest) {
       throw new ApiError("Invalid request payload", 400, parsed.error.flatten());
     }
 
-    const results = await checkAvailability(parsed.data.domains);
+    const availability = await checkAvailability(parsed.data.domains);
+    const results = buildOptionsForDomains(availability, parsed.data.registrars);
     const responseBody = checkAvailabilityResponseSchema.parse({ results });
     return ok(responseBody);
   } catch (error) {

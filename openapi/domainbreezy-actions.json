@@ -78,6 +78,14 @@
                   "domains": {
                     "type": "array",
                     "items": { "type": "string" }
+                  },
+                  "registrars": {
+                    "type": "array",
+                    "description": "Optional registrar list to include in purchase options.",
+                    "items": {
+                      "type": "string",
+                      "enum": ["namecheap", "cloudflare", "dnsimple", "porkbun"]
+                    }
                   }
                 },
                 "required": ["domains"]
@@ -99,9 +107,42 @@
                         "type": "object",
                         "properties": {
                           "domain": { "type": "string" },
-                          "available": { "type": "boolean" }
+                          "available": { "type": "boolean" },
+                          "options": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "registrar": {
+                                  "type": "string",
+                                  "enum": ["namecheap", "cloudflare", "dnsimple", "porkbun"]
+                                },
+                                "connected": { "type": "boolean" },
+                                "purchasableInChat": { "type": "boolean" },
+                                "basePriceUsd": { "type": "number" },
+                                "totalPriceUsd": { "type": "number" },
+                                "currency": { "type": "string", "enum": ["USD"] },
+                                "action": {
+                                  "type": "string",
+                                  "enum": ["purchase_in_chat", "connect_account", "external_checkout"]
+                                },
+                                "connectUrl": { "type": "string" },
+                                "note": { "type": "string" }
+                              },
+                              "required": [
+                                "registrar",
+                                "connected",
+                                "purchasableInChat",
+                                "basePriceUsd",
+                                "totalPriceUsd",
+                                "currency",
+                                "action",
+                                "note"
+                              ]
+                            }
+                          }
                         },
-                        "required": ["domain", "available"]
+                        "required": ["domain", "available", "options"]
                       }
                     }
                   },
@@ -148,6 +189,36 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/purchase-domain": {
+      "post": {
+        "operationId": "purchaseDomain",
+        "summary": "Attempt in-chat domain registration with selected registrar",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "domain": { "type": "string" },
+                  "registrar": {
+                    "type": "string",
+                    "enum": ["namecheap", "cloudflare", "dnsimple", "porkbun"]
+                  },
+                  "expectedTotalPriceUsd": { "type": "number" }
+                },
+                "required": ["domain", "registrar", "expectedTotalPriceUsd"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Purchase outcome, connection requirement, or checkout fallback."
           }
         }
       }

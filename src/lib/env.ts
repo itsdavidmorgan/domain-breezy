@@ -9,14 +9,23 @@ const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().min(1, "STRIPE_WEBHOOK_SECRET is required"),
   NEXT_PUBLIC_SITE_URL: z.string().url(),
   OPENAI_MODEL: z.string().default("gpt-4.1-mini"),
-  DOMAINBREEZY_PRICE_CENTS: z.coerce.number().int().positive().default(500),
+  DOMAINBREEZY_PRICE_CENTS: z.coerce.number().int().positive().default(499),
+  DOMAINBREEZY_SERVICE_FEE_CENTS: z.coerce.number().int().nonnegative().default(499),
   DOMAINBREEZY_USE_STUBS: z
     .enum(["true", "false"])
     .default("false")
     .transform((value) => value === "true"),
+  DOMAINBREEZY_CONNECTED_REGISTRARS: z.string().default(""),
   DOMAINBREEZY_GPT_URL: z
     .string()
     .default("https://chatgpt.com/g/g-xxxxxxxx-domainbreezy"),
+  CLOUDFLARE_ACCOUNT_ID: z.string().optional(),
+  CLOUDFLARE_API_TOKEN: z.string().optional(),
+  DNSIMPLE_ACCOUNT_ID: z.string().optional(),
+  DNSIMPLE_API_TOKEN: z.string().optional(),
+  DNSIMPLE_REGISTRANT_ID: z.string().optional(),
+  PORKBUN_API_KEY: z.string().optional(),
+  PORKBUN_SECRET_API_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
