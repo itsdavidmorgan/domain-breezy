@@ -25,6 +25,8 @@ DomainBreezy is a GPT-first domain assistant that helps users go from idea to av
 - `POST /api/generate-domains`
 - `POST /api/check-availability`
 - `POST /api/create-checkout-session`
+- `POST /api/connect-registrar`
+- `GET /api/registrar-connections`
 - `POST /api/purchase-domain`
 - `POST /api/stripe/webhook`
 
@@ -46,10 +48,14 @@ DomainBreezy is a GPT-first domain assistant that helps users go from idea to av
 5. Import `openapi/domainbreezy-actions.json` into GPT Actions.
 6. Validate full flow:
    - Idea prompt -> generated domains -> availability + pricing options -> in-chat purchase attempt.
-   - If not connected, prompt for registrar connect flow.
+   - If not connected, prompt for registrar connect flow at `/connect-registrar`.
    - If Namecheap selected, fallback to checkout link -> success page -> Namecheap redirect.
 
 ## Compliance notes
 - DomainBreezy may facilitate registrations through connected registrar APIs.
 - The $4.99 service fee is included in displayed total prices.
 - Namecheap remains an external checkout fallback flow.
+
+## Registrar connect UX
+- Use `/connect-registrar` as a popup-style companion page while chat stays visible.
+- For MVP, connected registrar credentials are stored in memory by session cookie (not persistent across deploys/restarts).

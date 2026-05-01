@@ -23,6 +23,28 @@ export type AvailabilityWithOptions = {
   options: DomainOption[];
 };
 
+export type CloudflareCredentials = {
+  accountId: string;
+  apiToken: string;
+};
+
+export type DnsimpleCredentials = {
+  accountId: string;
+  apiToken: string;
+  registrantId: string;
+};
+
+export type PorkbunCredentials = {
+  apiKey: string;
+  secretApiKey: string;
+};
+
+export type RegistrarCredentials = Partial<{
+  cloudflare: CloudflareCredentials;
+  dnsimple: DnsimpleCredentials;
+  porkbun: PorkbunCredentials;
+}>;
+
 const tldBasePrices: Record<string, number> = {
   com: 11.98,
   ai: 74,
@@ -46,7 +68,7 @@ function getBasePrice(domain: string, registrar: RegistrarId) {
   return roundCurrency(base * multiplier);
 }
 
-function getConnectedRegistrars(): Set<RegistrarId> {
+function getConnectedRegistrars(credentials?: RegistrarCredentials): Set<RegistrarId> {
   const env = getEnv();
   const configured = new Set<RegistrarId>();
   const explicit = env.DOMAINBREEZY_CONNECTED_REGISTRARS.split(",")
@@ -63,10 +85,24 @@ function getConnectedRegistrars(): Set<RegistrarId> {
   if (env.DNSIMPLE_ACCOUNT_ID && env.DNSIMPLE_API_TOKEN) configured.add("dnsimple");
   if (env.PORKBUN_API_KEY && env.PORKBUN_SECRET_API_KEY) configured.add("porkbun");
 
+  if (credentials?.cloudflare?.accountId && credentials.cloudflare.apiToken) {
+    configured.add("cloudflare");
+  }
+  if (
+    credentials?.dnsimple?.accountId &&
+    credentials.dnsimple.apiToken &&
+    credentials.dnsimple.registrantId
+  ) {
+    configured.add("dnsimple");
+  }
+  if (credentials?.porkbun?.apiKey && credentials.porkbun.secretApiKey) {
+    configured.add("porkbun");
+  }
+
   return configured;
 }
 
-function getConnectUrl(registrar: RegistrarId) {
+export function getConnectUrl(registrar: RegistrarId) {
   switch (registrar) {
     case "cloudflare":
       return "https://dash.cloudflare.com/profile/api-tokens";
@@ -84,10 +120,11 @@ function getConnectUrl(registrar: RegistrarId) {
 export function buildOptionsForDomains(
   availability: { domain: string; available: boolean }[],
   requestedRegistrars?: RegistrarId[],
+  credentials?: RegistrarCredentials,
 ): AvailabilityWithOptions[] {
   const env = getEnv();
   const registrars = requestedRegistrars?.length ? requestedRegistrars : [...registrarIds];
-  const connected = getConnectedRegistrars();
+  const connected = getConnectedRegistrars(credentials);
   const serviceFee = env.DOMAINBREEZY_SERVICE_FEE_CENTS / 100;
 
   return availability.map((item) => {
@@ -143,9 +180,12 @@ export function buildOptionsForDomains(
   });
 }
 
-async function registerCloudflareDomain(domain: string) {
+async function registerCloudflareDomain(domain: string, credentials?: RegistrarCredentials) {
   const env = getEnv();
-  if (!env.CLOUDFLARE_ACCOUNT_ID || !env.CLOUDFLARE_API_TOKEN) {
+  const accountId = credentials?.cloudflare?.accountId ?? env.CLOUDFLARE_ACCOUNT_ID;
+  const apiToken = credentials?.cloudflare?.apiToken ?? env.CLOUDFLARE_API_TOKEN;
+
+  if (!accountId || !apiToken) {
     throw new ApiError("Cloudflare account is not connected", 400);
   }
 
@@ -154,11 +194,11 @@ async function registerCloudflareDomain(domain: string) {
   }
 
   const response = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${env.CLOUDFLARE_ACCOUNT_ID}/registrar/registrations`,
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/registrar/registrations`,
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}`,
+        Authorization: `Bearer ${apiToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ domain_name: domain }),
@@ -173,9 +213,13 @@ async function registerCloudflareDomain(domain: string) {
   return { reference: payload?.result?.id ?? domain };
 }
 
-async function registerDnsimpleDomain(domain: string) {
+async function registerDnsimpleDomain(domain: string, credentials?: RegistrarCredentials) {
   const env = getEnv();
-  if (!env.DNSIMPLE_ACCOUNT_ID || !env.DNSIMPLE_API_TOKEN || !env.DNSIMPLE_REGISTRANT_ID) {
+  const accountId = credentials?.dnsimple?.accountId ?? env.DNSIMPLE_ACCOUNT_ID;
+  const apiToken = credentials?.dnsimple?.apiToken ?? env.DNSIMPLE_API_TOKEN;
+  const registrantId = credentials?.dnsimple?.registrantId ?? env.DNSIMPLE_REGISTRANT_ID;
+
+  if (!accountId || !apiToken || !registrantId) {
     throw new ApiError("DNSimple account is not connected", 400);
   }
 
@@ -184,16 +228,16 @@ async function registerDnsimpleDomain(domain: string) {
   }
 
   const response = await fetch(
-    `https://api.dnsimple.com/v2/${env.DNSIMPLE_ACCOUNT_ID}/registrar/domains/${domain}/registrations`,
+    `https://api.dnsimple.com/v2/${accountId}/registrar/domains/${domain}/registrations`,
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${env.DNSIMPLE_API_TOKEN}`,
+        Authorization: `Bearer ${apiToken}`,
         Accept: "application/json",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        registrant_id: Number(env.DNSIMPLE_REGISTRANT_ID),
+        registrant_id: Number(registrantId),
         whois_privacy: true,
       }),
     },
@@ -207,9 +251,16 @@ async function registerDnsimpleDomain(domain: string) {
   return { reference: payload?.data?.id ?? domain };
 }
 
-async function registerPorkbunDomain(domain: string, expectedTotalUsd: number) {
+async function registerPorkbunDomain(
+  domain: string,
+  expectedTotalUsd: number,
+  credentials?: RegistrarCredentials,
+) {
   const env = getEnv();
-  if (!env.PORKBUN_API_KEY || !env.PORKBUN_SECRET_API_KEY) {
+  const apiKey = credentials?.porkbun?.apiKey ?? env.PORKBUN_API_KEY;
+  const secretApiKey = credentials?.porkbun?.secretApiKey ?? env.PORKBUN_SECRET_API_KEY;
+
+  if (!apiKey || !secretApiKey) {
     throw new ApiError("Porkbun account is not connected", 400);
   }
 
@@ -221,8 +272,8 @@ async function registerPorkbunDomain(domain: string, expectedTotalUsd: number) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-API-Key": env.PORKBUN_API_KEY,
-      "X-Secret-API-Key": env.PORKBUN_SECRET_API_KEY,
+      "X-API-Key": apiKey,
+      "X-Secret-API-Key": secretApiKey,
     },
     body: JSON.stringify({
       cost: Math.round(expectedTotalUsd * 100),
@@ -242,8 +293,9 @@ export async function purchaseDomainInChat(input: {
   domain: string;
   registrar: RegistrarId;
   expectedTotalPriceUsd: number;
+  credentials?: RegistrarCredentials;
 }) {
-  const { domain, registrar, expectedTotalPriceUsd } = input;
+  const { domain, registrar, expectedTotalPriceUsd, credentials } = input;
   assertDomainLooksValid(domain);
 
   if (registrar === "namecheap") {
@@ -256,7 +308,7 @@ export async function purchaseDomainInChat(input: {
     };
   }
 
-  const connected = getConnectedRegistrars();
+  const connected = getConnectedRegistrars(credentials);
   if (!connected.has(registrar)) {
     return {
       status: "requires_connection" as const,
@@ -270,10 +322,10 @@ export async function purchaseDomainInChat(input: {
   const normalizedDomain = domain.trim().toLowerCase();
   const result =
     registrar === "cloudflare"
-      ? await registerCloudflareDomain(normalizedDomain)
+      ? await registerCloudflareDomain(normalizedDomain, credentials)
       : registrar === "dnsimple"
-        ? await registerDnsimpleDomain(normalizedDomain)
-        : await registerPorkbunDomain(normalizedDomain, expectedTotalPriceUsd);
+        ? await registerDnsimpleDomain(normalizedDomain, credentials)
+        : await registerPorkbunDomain(normalizedDomain, expectedTotalPriceUsd, credentials);
 
   return {
     status: "registered" as const,
@@ -282,4 +334,14 @@ export async function purchaseDomainInChat(input: {
     message: `Domain registration submitted via ${registrar}.`,
     reference: result.reference,
   };
+}
+
+export function getRegistrarConnectionStatuses(credentials?: RegistrarCredentials) {
+  const connected = getConnectedRegistrars(credentials);
+  return registrarIds.map((registrar) => ({
+    registrar,
+    connected: connected.has(registrar),
+    connectUrl: getConnectUrl(registrar),
+    purchasableInChat: registrar !== "namecheap" && connected.has(registrar),
+  }));
 }

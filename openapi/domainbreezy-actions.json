@@ -193,6 +193,67 @@
         }
       }
     },
+    "/registrar-connections": {
+      "get": {
+        "operationId": "getRegistrarConnections",
+        "summary": "Get registrar connection status for current session",
+        "responses": {
+          "200": {
+            "description": "Connection status by registrar."
+          }
+        }
+      }
+    },
+    "/connect-registrar": {
+      "post": {
+        "operationId": "connectRegistrar",
+        "summary": "Connect a registrar account for in-chat purchase",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "registrar": { "type": "string", "enum": ["cloudflare"] },
+                      "accountId": { "type": "string" },
+                      "apiToken": { "type": "string" }
+                    },
+                    "required": ["registrar", "accountId", "apiToken"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "registrar": { "type": "string", "enum": ["dnsimple"] },
+                      "accountId": { "type": "string" },
+                      "apiToken": { "type": "string" },
+                      "registrantId": { "type": "string" }
+                    },
+                    "required": ["registrar", "accountId", "apiToken", "registrantId"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "registrar": { "type": "string", "enum": ["porkbun"] },
+                      "apiKey": { "type": "string" },
+                      "secretApiKey": { "type": "string" }
+                    },
+                    "required": ["registrar", "apiKey", "secretApiKey"]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Registrar connection saved for current session."
+          }
+        }
+      }
+    },
     "/purchase-domain": {
       "post": {
         "operationId": "purchaseDomain",

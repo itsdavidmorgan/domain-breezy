@@ -56,6 +56,28 @@ export const purchaseDomainRequestSchema = z.object({
   expectedTotalPriceUsd: z.number().positive(),
 });
 
+export const connectRegistrarRequestSchema = z.discriminatedUnion("registrar", [
+  z.object({
+    registrar: z.literal("cloudflare"),
+    accountId: z.string().min(5),
+    apiToken: z.string().min(20),
+  }),
+  z.object({
+    registrar: z.literal("dnsimple"),
+    accountId: z.string().min(1),
+    apiToken: z.string().min(20),
+    registrantId: z.string().min(1),
+  }),
+  z.object({
+    registrar: z.literal("porkbun"),
+    apiKey: z.string().min(10),
+    secretApiKey: z.string().min(10),
+  }),
+  z.object({
+    registrar: z.literal("namecheap"),
+  }),
+]);
+
 export function assertDomainLooksValid(domain: string) {
   const pattern = /^[a-z0-9]+(?:-[a-z0-9]+)*\.[a-z]{2,24}$/;
   if (!pattern.test(domain)) {

@@ -23,9 +23,11 @@
 2. Confirm GPT calls `generateDomains`.
 3. Confirm GPT calls `checkAvailability`.
 4. Confirm GPT displays a table including total price with service fee.
-5. Select an available domain and registrar, then confirm GPT calls `purchaseDomain`.
-6. If result is `requires_external_checkout`, confirm GPT calls `createCheckout`.
-7. Verify disclosure appears before checkout URL for external flow.
+5. Ask GPT to fetch account connection status via `getRegistrarConnections`.
+6. Select an available domain and registrar, then confirm GPT calls `purchaseDomain`.
+7. If result is `requires_connection`, open `/connect-registrar`, connect account, and retry.
+8. If result is `requires_external_checkout`, confirm GPT calls `createCheckout`.
+9. Verify disclosure appears before checkout URL for external flow.
 
 ## 6) Success flow check
 - Complete checkout in Stripe test mode.
