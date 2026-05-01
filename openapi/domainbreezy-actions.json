@@ -1,0 +1,156 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "DomainBreezy API",
+    "version": "1.0.0",
+    "description": "API for generating domain names, checking availability, and creating DomainBreezy checkout sessions."
+  },
+  "servers": [
+    {
+      "url": "https://domainbreezy.com/api"
+    }
+  ],
+  "paths": {
+    "/generate-domains": {
+      "post": {
+        "operationId": "generateDomains",
+        "summary": "Generate domain name ideas",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "idea": {
+                    "type": "string",
+                    "description": "The user's business, product, app, brand, or project idea."
+                  }
+                },
+                "required": ["idea"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated domain suggestions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "domains": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": { "type": "string" },
+                          "type": {
+                            "type": "string",
+                            "enum": ["brandable", "descriptive", "emotional", "seo", "short"]
+                          },
+                          "reason": { "type": "string" }
+                        },
+                        "required": ["name", "type", "reason"]
+                      }
+                    }
+                  },
+                  "required": ["domains"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/check-availability": {
+      "post": {
+        "operationId": "checkAvailability",
+        "summary": "Check domain availability",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "domains": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  }
+                },
+                "required": ["domains"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Domain availability results.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "domain": { "type": "string" },
+                          "available": { "type": "boolean" }
+                        },
+                        "required": ["domain", "available"]
+                      }
+                    }
+                  },
+                  "required": ["results"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/create-checkout-session": {
+      "post": {
+        "operationId": "createCheckout",
+        "summary": "Create Stripe checkout session for DomainBreezy Instant Secure",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "domain": {
+                    "type": "string",
+                    "description": "The selected domain name."
+                  }
+                },
+                "required": ["domain"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stripe checkout URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "checkout_url": { "type": "string" }
+                  },
+                  "required": ["checkout_url"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
