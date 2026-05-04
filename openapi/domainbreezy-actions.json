@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://domainbreezy.com/api"
+      "url": "https://domain-breezy.vercel.app/api"
     }
   ],
   "paths": {
